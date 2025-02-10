@@ -1,0 +1,75 @@
+/*
+ *   This file is part of SIL Compiler.
+ *
+ *  SIL Compiler is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  SIL Compiler is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with SIL Compiler.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%{
+    #include "node.h"
+    #include "hash.h"
+    #include "y.tab.h"
+    #include <stdio.h>
+    extern YYSTYPE yylval;
+    int  Lineno = 1;
+    int  wflag;
+%}
+
+%option noyywrap
+
+digit	[0-9]
+letter	[a-zA-Z]
+
+%%
+
+main          {yylval.id = strdup(yytext);  return MAIN; }
+return        {yylval.id = strdup(yytext);  return RETURN; }
+end           {yylval.id = strdup(yytext);  return END; }
+read          {yylval.id = strdup(yytext);  return READ; }
+write         {yylval.id = strdup(yytext);  return WRITE; }
+integer       {yylval.id = strdup(yytext);  return T_INT; }
+boolean       {yylval.id = strdup(yytext);  return T_BOOL; }
+begindecl     {yylval.id = strdup(yytext);  return DECL; }
+begin         {yylval.id = strdup(yytext);  return BEG; }
+enddecl       {yylval.id = strdup(yytext);  return ENDDECL; }
+if            {yylval.id = strdup(yytext);  return IF; }
+then          {yylval.id = strdup(yytext);  return THEN; }
+else          {yylval.id = strdup(yytext);  return ELSE; }
+endif         {yylval.id = strdup(yytext);  return ENDIF; }
+do            {yylval.id = strdup(yytext);  return DO; }
+while         {yylval.id = strdup(yytext);  return WHILE; }
+endwhile      {yylval.id = strdup(yytext);  return ENDWHILE; }
+for           {yylval.id = strdup(yytext);  return FOR; }
+
+"=="         { return EQUALEQUAL; }
+"<="         { return LESSTHANOREQUAL; }
+">="         { return GREATERTHANOREQUAL; }
+"!="         { return NOTEQUAL; }
+
+AND          { return LOGICAL_AND; }
+OR           { return LOGICAL_OR; }
+NOT          { return LOGICAL_NOT; }
+true         { return T; }
+false        { return F; }
+
+{digit}+     { yylval.val = atoi(yytext); return NUM; }
+{letter}({letter}|{digit})*   {yylval.var = strdup(yytext); return VAR; }
+
+[-+*/=()><;,\{\}\[\]\%] { return yytext[0]; }
+
+[ \t]        { /* Ignore spaces and tabs */ }
+\n           { Lineno++; }
+
+.            { return yytext[0]; }
+
+%%
