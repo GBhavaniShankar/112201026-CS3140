@@ -182,13 +182,13 @@ void print_symbol_table()
 
     // Print divider line
     printf("╟");
-    for (int i = 0; i < nameWidth; i++)
+    for (int i = 0; i < nameWidth + 2; i++)
         printf("─");
     printf("┼");
-    for (int i = 0; i < typeWidth; i++)
+    for (int i = 0; i < typeWidth + 2; i++)
         printf("─");
     printf("┼");
-    for (int i = 0; i < valueWidth; i++)
+    for (int i = 0; i < valueWidth - 3; i++)
         printf("─");
     printf("\n");
 
@@ -290,7 +290,7 @@ void initialize_global()
     DeclNode *int_array_2d_node = (DeclNode *)malloc(sizeof(DeclNode));
     DeclNode *float_node = (DeclNode *)malloc(sizeof(DeclNode));
 
-    if (!int_node || !int_array_node || !int_array_2d_node)
+    if (!int_node || !int_array_node || !int_array_2d_node || !float_node)
     {
         fprintf(stderr, "Memory allocation failed for DeclNodes\n");
         exit(EXIT_FAILURE);
@@ -308,11 +308,11 @@ void initialize_global()
     int_array_node->var_count = 0;
     int_array_node->next = int_array_2d_node;
 
-    int_array_node->type = SYMBOL_INT_2D_ARRAY;
-    int_array_node->type_name = "int 2d array";
-    int_array_node->var = NULL;
-    int_array_node->var_count = 0;
-    int_array_node->next = float_node;
+    int_array_2d_node->type = SYMBOL_INT_2D_ARRAY; // Corrected: Use int_array_2d_node
+    int_array_2d_node->type_name = "int 2d array";
+    int_array_2d_node->var = NULL;
+    int_array_2d_node->var_count = 0;
+    int_array_2d_node->next = float_node;
 
     float_node->type = SYMBOL_FLOAT;
     float_node->type_name = "float";
@@ -1168,86 +1168,102 @@ void eval_break(Node *break_node)
 
 // Recursively prints the AST node in a tree-like format.
 // Recursively prints an AST node and its children in a tree-like format.
-void print_node_tree(Node *node, const char *indent) {
+void print_node_tree(Node *node, const char *indent)
+{
     if (!node)
         return;
 
     // Print the current node type based on its nodetype.
-    switch (node->nodetype) {
-        case NODE_ASSIGN:
-            printf("%s- ASSIGN\n", indent);
-            // Print children: left-hand side and right-hand side.
-            {
-                char childIndent[256];
-                snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
-                print_node_tree(node->data.assign.var_expr, childIndent);
-                print_node_tree(node->data.assign.expr, childIndent);
-            }
+    switch (node->nodetype)
+    {
+    case NODE_ASSIGN:
+        printf("%s- ASSIGN\n", indent);
+        // Print children: left-hand side and right-hand side.
+        {
+            char childIndent[256];
+            snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
+            print_node_tree(node->data.assign.var_expr, childIndent);
+            print_node_tree(node->data.assign.expr, childIndent);
+        }
+        break;
+    case NODE_VAR:
+        printf("%s- VAR\n", indent);
+        break;
+    case NODE_EXPR:
+        // For expressions, print the operator type.
+        switch (node->data.expr.op)
+        {
+        case TOKEN_ADD:
+            printf("%s- ADD\n", indent);
             break;
-        case NODE_VAR:
-            printf("%s- VAR\n", indent);
+        case TOKEN_SUB:
+            printf("%s- SUB\n", indent);
             break;
-        case NODE_EXPR:
-            // For expressions, print the operator type.
-            switch (node->data.expr.op) {
-                case TOKEN_ADD: printf("%s- ADD\n", indent); break;
-                case TOKEN_SUB: printf("%s- SUB\n", indent); break;
-                case TOKEN_MUL: printf("%s- MUL\n", indent); break;
-                case TOKEN_DIV: printf("%s- DIV\n", indent); break;
-                case TOKEN_MOD: printf("%s- MOD\n", indent); break;
-                default:        printf("%s- EXPR\n", indent); break;
-            }
-            {
-                char childIndent[256];
-                snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
-                print_node_tree(node->data.expr.left, childIndent);
-                print_node_tree(node->data.expr.right, childIndent);
-            }
+        case TOKEN_MUL:
+            printf("%s- MUL\n", indent);
             break;
-        case NODE_FLOAT:
-            printf("%s- FLOAT\n", indent);
+        case TOKEN_DIV:
+            printf("%s- DIV\n", indent);
             break;
-        case NODE_NUM:
-            printf("%s- NUM\n", indent);
-            break;
-        case NODE_ARRAY:
-            printf("%s- ARRAY\n", indent);
-            {
-                char childIndent[256];
-                snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
-                print_node_tree(node->data.array.idx, childIndent);
-            }
-            break;
-        case NODE_2D_ARRAY:
-            printf("%s- 2D_ARRAY\n", indent);
-            {
-                char childIndent[256];
-                snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
-                // For 2D arrays, print both indices (if needed) or any extra info.
-                print_node_tree(node->data.array_2d.idx1, childIndent);
-                print_node_tree(node->data.array_2d.idx2, childIndent);
-            }
-            break;
-        case NODE_DO_WHILE:
-            printf("%s- DO_WHILE\n", indent);
-            {
-                char childIndent[256];
-                snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
-                printf("%s├── BODY:\n", childIndent);
-                // Assume the do–while node contains a field 'stmts' for the loop body.
-                print_statements_tree(node->data.do_while_stmt.stmts, childIndent);
-                printf("%s└── CONDITION:\n", childIndent);
-                print_node_tree(node->data.do_while_stmt.cond, childIndent);
-            }
+        case TOKEN_MOD:
+            printf("%s- MOD\n", indent);
             break;
         default:
-            printf("%s- UNKNOWN NODE\n", indent);
+            printf("%s- EXPR\n", indent);
             break;
+        }
+        {
+            char childIndent[256];
+            snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
+            print_node_tree(node->data.expr.left, childIndent);
+            print_node_tree(node->data.expr.right, childIndent);
+        }
+        break;
+    case NODE_FLOAT:
+        printf("%s- FLOAT\n", indent);
+        break;
+    case NODE_NUM:
+        printf("%s- NUM\n", indent);
+        break;
+    case NODE_ARRAY:
+        printf("%s- ARRAY\n", indent);
+        {
+            char childIndent[256];
+            snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
+            print_node_tree(node->data.array.idx, childIndent);
+        }
+        break;
+    case NODE_2D_ARRAY:
+        printf("%s- 2D_ARRAY\n", indent);
+        {
+            char childIndent[256];
+            snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
+            // For 2D arrays, print both indices (if needed) or any extra info.
+            print_node_tree(node->data.array_2d.idx1, childIndent);
+            print_node_tree(node->data.array_2d.idx2, childIndent);
+        }
+        break;
+    case NODE_DO_WHILE:
+        printf("%s- DO_WHILE\n", indent);
+        {
+            char childIndent[256];
+            snprintf(childIndent, sizeof(childIndent), "%s    ", indent);
+            printf("%s├── BODY:\n", childIndent);
+            // Assume the do–while node contains a field 'stmts' for the loop body.
+            print_statements_tree(node->data.do_while_stmt.stmts, childIndent);
+            printf("%s└── CONDITION:\n", childIndent);
+            print_node_tree(node->data.do_while_stmt.cond, childIndent);
+        }
+        break;
+    default:
+        printf("%s- UNKNOWN NODE\n", indent);
+        break;
     }
 }
 
 // Recursively prints a list of statements in a tree-like format.
-void print_statement_tree(Statement *stmt, const char *indent) {
+void print_statement_tree(Statement *stmt, const char *indent)
+{
     if (!stmt)
         return;
 
@@ -1257,34 +1273,36 @@ void print_statement_tree(Statement *stmt, const char *indent) {
         count++;
 
     int index = 0;
-    for (Statement *s = stmt; s; s = s->next) {
+    for (Statement *s = stmt; s; s = s->next)
+    {
         index++;
         bool isLast = (index == count);
         printf("%s%s", indent, isLast ? "└── " : "├── ");
 
         // Print a label for the statement type.
-        switch (s->stmt_type) {
-            case STMT_ASSIGN:
-                printf("ASSIGN\n");
-                break;
-            case STMT_WRITE:
-                printf("WRITE\n");
-                break;
-            case STMT_IF:
-                printf("IF\n");
-                break;
-            case STMT_FOR:
-                printf("FOR\n");
-                break;
-            case STMT_DO_WHILE:
-                printf("DO_WHILE\n");
-                break;
-            case STMT_BREAK:
-                printf("BREAK\n");
-                break;
-            default:
-                printf("UNKNOWN STMT\n");
-                break;
+        switch (s->stmt_type)
+        {
+        case STMT_ASSIGN:
+            printf("ASSIGN\n");
+            break;
+        case STMT_WRITE:
+            printf("WRITE\n");
+            break;
+        case STMT_IF:
+            printf("IF\n");
+            break;
+        case STMT_FOR:
+            printf("FOR\n");
+            break;
+        case STMT_DO_WHILE:
+            printf("DO_WHILE\n");
+            break;
+        case STMT_BREAK:
+            printf("BREAK\n");
+            break;
+        default:
+            printf("UNKNOWN STMT\n");
+            break;
         }
 
         // Prepare a new indentation for child nodes.
@@ -1296,17 +1314,18 @@ void print_statement_tree(Statement *stmt, const char *indent) {
 
 // Helper: For printing statements in a tree-like format.
 // (This function is similar to print_statement_tree; adjust the name as needed.)
-void print_statements_tree(Statement *stmt, const char *indent) {
+void print_statements_tree(Statement *stmt, const char *indent)
+{
     print_statement_tree(stmt, indent);
 }
 
 // Top-level function to print all statements with a header.
-void print_all_statements_tree(Statement *stmt) {
+void print_all_statements_tree(Statement *stmt)
+{
     printf("========== STATEMENTS ==========\n");
     print_statement_tree(stmt, "");
     printf("================================\n");
 }
-
 
 /* Freeing Functions */
 

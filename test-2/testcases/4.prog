@@ -1,6 +1,7 @@
 decl
 integer arr1[10];
 integer arr2[10];
+integer arr[10][11];
 integer i;
 enddecl
 begin
