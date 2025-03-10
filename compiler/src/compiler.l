@@ -16,10 +16,8 @@
  */
 
 %{
-    #include "node.h"
-    #include "hash.h"
+    #include "compiler.h"
     #include "y.tab.h"
-    #include <stdio.h>
     extern YYSTYPE yylval;
     int  Lineno = 1;
     int  wflag;
@@ -29,27 +27,29 @@
 
 digit	[0-9]
 letter	[a-zA-Z]
+string  \"[^\"]*\"
 
 %%
 
-main          {yylval.id = strdup(yytext);  return MAIN; }
-return        {yylval.id = strdup(yytext);  return RETURN; }
-end           {yylval.id = strdup(yytext);  return END; }
-read          {yylval.id = strdup(yytext);  return READ; }
-write         {yylval.id = strdup(yytext);  return WRITE; }
-integer       {yylval.id = strdup(yytext);  return T_INT; }
-boolean       {yylval.id = strdup(yytext);  return T_BOOL; }
-begindecl     {yylval.id = strdup(yytext);  return DECL; }
-begin         {yylval.id = strdup(yytext);  return BEG; }
-enddecl       {yylval.id = strdup(yytext);  return ENDDECL; }
-if            {yylval.id = strdup(yytext);  return IF; }
-then          {yylval.id = strdup(yytext);  return THEN; }
-else          {yylval.id = strdup(yytext);  return ELSE; }
-endif         {yylval.id = strdup(yytext);  return ENDIF; }
-do            {yylval.id = strdup(yytext);  return DO; }
-while         {yylval.id = strdup(yytext);  return WHILE; }
-endwhile      {yylval.id = strdup(yytext);  return ENDWHILE; }
-for           {yylval.id = strdup(yytext);  return FOR; }
+main         { return MAIN; }
+return       { return RETURN; }
+end          { return END; }
+read         { return READ; }
+write        { return WRITE; }
+integer      { return T_INT; }
+boolean      { return T_BOOL; }
+begindecl    { return DECL; }
+begin        { return BEG; }
+enddecl      { return ENDDECL; }
+if           { return IF; }
+then         { return THEN; }
+else         { return ELSE; }
+endif        { return ENDIF; }
+do           { return DO; }
+while        { return WHILE; }
+endwhile     { return ENDWHILE; }
+for          { return FOR; }
+break        { return BREAK; }
 
 "=="         { return EQUALEQUAL; }
 "<="         { return LESSTHANOREQUAL; }
@@ -63,7 +63,13 @@ true         { return T; }
 false        { return F; }
 
 {digit}+     { yylval.val = atoi(yytext); return NUM; }
-{letter}({letter}|{digit})*   {yylval.var = strdup(yytext); return VAR; }
+{letter}({letter}|{digit})*   { yylval.var = strdup(yytext); return VAR; }
+
+{string}     { 
+                yylval.var = strdup(yytext + 1);
+                yylval.var[strlen(yylval.var) - 1] = '\0';
+                return STRING; 
+             }
 
 [-+*/=()><;,\{\}\[\]\%] { return yytext[0]; }
 
