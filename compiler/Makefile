@@ -2,21 +2,16 @@ PROGRAM = compiler
 SOURCE = src
 BIN = bin
 INCLUDE = include
+SRCS    = src/sym_tab.c src/statement.c
 
 all:
-	@echo "Building parser..."
 	@yacc -d $(SOURCE)/$(PROGRAM).y -Wnone
 	@lex $(SOURCE)/$(PROGRAM).l
 	@mkdir -p $(BIN)
-	@echo "Compiling source files..."
-	@gcc -o $(BIN)/$(PROGRAM) lex.yy.c y.tab.c $(SOURCE)/$(PROGRAM).c -w -I ./$(INCLUDE)
-	@echo "Build complete."
+	@gcc -o $(BIN)/$(PROGRAM) lex.yy.c y.tab.c $(SRCS) -w -I ./$(INCLUDE)
 
 run: all
-	@echo "Running program..."
-	@./$(BIN)/$(PROGRAM)
+	@./$(BIN)/$(PROGRAM) test/test5.sil
 
 clean:
-	@echo "Cleaning up..."
 	@rm -rf $(BIN)/ y.tab.c lex.yy.c y.tab.h
-	@echo "Cleanup complete."

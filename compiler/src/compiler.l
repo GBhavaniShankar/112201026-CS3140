@@ -33,14 +33,15 @@ string  \"[^\"]*\"
 
 main         { return MAIN; }
 return       { return RETURN; }
-end          { return END; }
 read         { return READ; }
 write        { return WRITE; }
 integer      { return T_INT; }
 boolean      { return T_BOOL; }
 begindecl    { return DECL; }
+decl         { return DECL; }
 begin        { return BEG; }
 enddecl      { return ENDDECL; }
+end          { return END; }
 if           { return IF; }
 then         { return THEN; }
 else         { return ELSE; }
@@ -61,7 +62,6 @@ OR           { return LOGICAL_OR; }
 NOT          { return LOGICAL_NOT; }
 true         { return T; }
 false        { return F; }
-
 {digit}+     { yylval.val = atoi(yytext); return NUM; }
 {letter}({letter}|{digit})*   { yylval.var = strdup(yytext); return VAR; }
 

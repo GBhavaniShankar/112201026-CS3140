@@ -1,121 +1,214 @@
 #ifndef COMPILER_H
 #define COMPILER_H
 
+/**
+ * @file compiler.h
+ * @brief Header file for SIL Compiler.
+ *
+ * This file contains declarations for the symbol table, AST (Abstract Syntax Tree)
+ * node structures, statement structures, and function prototypes used throughout the
+ * SIL Compiler. It also defines various color macros for console output.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
 
-#define TABLE_SIZE 100
+/* Macros for symbol table size and terminal colors */
+#define TABLE_SIZE 10
+
+#define RESET "\033[0m"
+#define BOLD "\033[1m"
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define BLUE "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN "\033[1;36m"
+#define WHITE "\033[1;37m"
+
+/* ------------------------------------------------------------------------- */
+/*                             Symbol Table                                  */
+/* ------------------------------------------------------------------------- */
 
 /**
- * @brief Global flag for break statement.
- */
-extern bool breakFlag;
-
-/**
- * @brief Enumeration for symbol types.
+ * @enum SymbolType
+ * @brief Enumeration of possible symbol types.
  */
 typedef enum
 {
-    SYMBOL_INT,       /**< Integer symbol type */
-    SYMBOL_INT_ARRAY, /**< Integer array symbol type */
-    SYMBOL_BOOL
+    SYMBOL_INT,       /**< Integer variable symbol. */
+    SYMBOL_INT_ARRAY, /**< Integer array symbol. */
+    SYMBOL_BOOL,      /**< Boolean variable symbol. */
+    SYMBOL_BOOL_ARRAY /**< Boolean array symbol. */
 } SymbolType;
 
 /**
- * @brief Union representing a symbol's value.
+ * @union SymbolValue
+ * @brief Union for storing the value of a symbol.
  */
 typedef union
 {
     struct
     {
-        int value;       /**< Integer value */
-        bool is_defined; /**< Flag indicating if the integer is defined */
+        int value;       /**< Value for an integer variable. */
+        bool is_defined; /**< Flag indicating if the variable is defined. */
     } int_value;
     struct
     {
-        int *array; /**< Pointer to integer array */
-        int size;   /**< Size of the array */
+        int *array; /**< Pointer to the integer array. */
+        int size;   /**< Size of the integer array. */
     } int_array;
+    struct
+    {
+        bool value;      /**< Value for an Boolean variable. */
+        bool is_defined; /**< Flag indicating if the variable is defined. */
+    } bool_value;
+    struct
+    {
+        bool *array; /**< Pointer to the boolean array. */
+        int size;    /**< Size of the boolean array. */
+    } bool_array;
 } SymbolValue;
 
 /**
- * @brief Structure representing a symbol in the symbol table.
+ * @struct Symbol
+ * @brief Structure representing an entry in the symbol table.
  */
 typedef struct Symbol
 {
-    char *name;          /**< Name of the symbol */
-    SymbolType type;     /**< Type of the symbol */
-    SymbolValue value;   /**< Value of the symbol */
-    struct Symbol *next; /**< Pointer to the next symbol in the table */
+    char *name;          /**< Identifier name. */
+    SymbolType type;     /**< Type of the symbol. */
+    SymbolValue value;   /**< Value of the symbol. */
+    struct Symbol *next; /**< Pointer to the next symbol in the chain (for collision resolution). */
 } Symbol;
 
-/**
- * @brief The symbol table as an array of symbol pointers.
- */
 extern Symbol *symbol_table[TABLE_SIZE];
 
 /**
- * @brief Initializes the symbol table.
+ * @brief Initializes the symbol table by setting all entries to NULL.
  */
 void init_symbol_table();
 
 /**
  * @brief Computes the hash value for a given key.
- *
- * @param key The key to hash.
- * @return The computed hash value.
+ * @param key The string key.
+ * @return The computed hash value modulo TABLE_SIZE.
  */
 unsigned int hash(const char *key);
 
 /**
- * @brief Creates an integer symbol with the given key, value, and defined status.
- *
- * @param key The symbol name.
- * @param value The integer value.
- * @param is_defined Boolean indicating if the symbol is defined.
+ * @brief Creates a new symbol with the specified key and adds it to the symbol table.
+ * @param key The identifier name.
+ * @return Pointer to the newly created symbol.
  */
-void create_symbol_int(const char *key, int value, bool is_defined);
+Symbol *create_symbol(const char *key);
 
 /**
- * @brief Updates the integer symbol with a new value.
- *
- * @param key The symbol name.
- * @param new_value The new integer value.
+ * @brief Creates a new integer symbol.
+ * @param key The identifier name.
  */
-void update_symbol_int(const char *key, int new_value);
+void create_symbol_int(const char *key);
 
 /**
- * @brief Creates an integer array symbol with the specified key and size.
- *
- * @param key The symbol name.
+ * @brief Creates a new integer array symbol.
+ * @param key The identifier name.
  * @param size The size of the array.
  */
-void create_symbol_array(const char *key, int size);
+void create_symbol_int_array(const char *key, int size);
 
 /**
- * @brief Updates an element of an integer array symbol.
- *
- * @param key The symbol name.
- * @param index The index of the element to update.
- * @param value The new value for the element.
+ * @brief Creates a new boolean symbol.
+ * @param key The identifier name.
  */
-void update_symbol_array(const char *key, int index, int value);
+void create_symbol_bool(const char *key);
 
 /**
- * @brief Searches for a symbol in the symbol table.
- *
- * @param key The symbol name to search for.
- * @return Pointer to the found symbol, or NULL if not found.
+ * @brief Creates a new boolean array symbol.
+ * @param key The identifier name.
+ * @param size The size of the array.
+ */
+void create_symbol_bool_array(const char *key, int size);
+
+/**
+ * @brief Searches for a symbol by key.
+ * @param key The identifier name.
+ * @return Pointer to the symbol if found; otherwise, NULL.
  */
 Symbol *search_symbol(const char *key);
 
 /**
- * @brief Frees the memory allocated for a symbol.
- *
- * @param symbol The symbol to free.
+ * @brief Searches symbol type by key.
+ * @param key The identifier name.
+ * @return type of that identifier.
+ */
+SymbolType find_symbol_type(char *key);
+
+/**
+ * @brief Updates the value of an integer symbol.
+ * @param key The identifier name.
+ * @param value The new value.
+ */
+void update_symbol_int(const char *key, int value);
+
+/**
+ * @brief Updates the value at a given index in an integer array symbol.
+ * @param key The identifier name.
+ * @param index The index to update.
+ * @param value The new value.
+ */
+void update_symbol_int_array(const char *key, int index, int value);
+
+/**
+ * @brief Updates the value of an boolean symbol.
+ * @param key The identifier name.
+ * @param value The new value.
+ */
+void update_symbol_bool(const char *key, int value);
+
+/**
+ * @brief Updates the value at a given index in an boolean array symbol.
+ * @param key The identifier name.
+ * @param index The index to update.
+ * @param value The new value.
+ */
+void update_symbol_bool_array(const char *key, int index, int value);
+
+/**
+ * @brief Retrieves the integer value of a symbol.
+ * @param key The identifier name.
+ * @return The integer value.
+ */
+int lookup_int(const char *key);
+
+/**
+ * @brief Retrieves the integer value from an array symbol at a specific index.
+ * @param key The identifier name.
+ * @param index The index to lookup.
+ * @return The integer value at the specified index.
+ */
+int lookup_int_arr(const char *key, int index);
+
+/**
+ * @brief Retrieves the boolean value of a symbol.
+ * @param key The identifier name.
+ * @return The integer value.
+ */
+bool lookup_bool(const char *key);
+
+/**
+ * @brief Retrieves the boolean value from an array symbol at a specific index.
+ * @param key The identifier name.
+ * @param index The index to lookup.
+ * @return The boolean value at the specified index.
+ */
+bool lookup_bool_arr(const char *key, int index);
+
+/**
+ * @brief Frees memory associated with a symbol.
+ * @param symbol Pointer to the symbol to free.
  */
 void free_symbol(Symbol *symbol);
 
@@ -125,453 +218,445 @@ void free_symbol(Symbol *symbol);
 void free_symbol_table();
 
 /**
- * @brief Prints the symbol table.
+ * @brief Prints the symbol table to the console.
  */
 void print_symbol_table();
 
 /**
- * @brief Prints a newline character.
+ * @brief Prints a newline.
  */
 static inline void endl() { printf("\n"); }
 
+/* ------------------------------------------------------------------------- */
+/*                             AST and Statements                          */
+/* ------------------------------------------------------------------------- */
+
 /**
- * @brief Enumeration for variable types.
+ * @enum ValueType
+ * @brief Enumeration of variable declaration types.
  */
 typedef enum
 {
-    VARIABLE, /**< Single variable type */
-    ARRAY  /**< Array variable type */
-} VarType;
+    VARIABLE, /**< Single variable declaration. */
+    ARRAY_1D  /**< One-dimensional array declaration. */
+} ValueType;
 
 /**
- * @brief Structure representing variable data for declarations.
- */
-typedef struct VariableData
-{
-    VarType type; /**< Type of the variable (VAR or ARR) */
-    union
-    {
-        struct
-        {
-            char *name; /**< Variable name */
-        } single;
-        struct
-        {
-            char *name; /**< Array name */
-            int size;   /**< Array size */
-        } array;
-    } data;
-    struct VariableData *next; /**< Pointer to the next variable data */
-} VariableData;
-
-/**
- * @brief Node structure for variable declarations.
- */
-typedef struct DeclNode
-{
-    SymbolType type;       /**< Type of the symbol */
-    char *type_name;       /**< Name of the type */
-    VariableData **var;    /**< Array of pointers to variable data */
-    int var_count;         /**< Number of variables */
-    struct DeclNode *next; /**< Pointer to the next declaration node */
-} DeclNode;
-
-/**
- * @brief Enumeration for declaration scope types.
+ * @enum StatementType
+ * @brief Enumeration of possible statement types in the AST.
  */
 typedef enum
 {
-    SCOPE_GLOBAL, /**< Global scope */
-    SCOPE_LOCAL,  /**< Local scope */
-    SCOPE_LOOP    /**< Loop scope */
-} DeclScopeType;
-
-/**
- * @brief Structure representing a declaration scope.
- */
-typedef struct DeclScope
-{
-    DeclScopeType scope; /**< The scope type */
-    DeclNode *decl_list; /**< Linked list of declaration nodes */
-} DeclScope;
-
-/**
- * @brief Global declarations.
- */
-extern DeclScope *global_decls;
-
-/**
- * @brief Initializes global declarations.
- */
-void initialize_global();
-
-/**
- * @brief Adds a global variable declaration.
- *
- * @param key The variable name.
- * @return Pointer to the created variable data.
- */
-VariableData *add_var(char *key);
-
-/**
- * @brief Adds a global array declaration.
- *
- * @param key The array name.
- * @param size The size of the array.
- * @return Pointer to the created variable data.
- */
-VariableData *add_arr(char *key, int size);
-
-/**
- * @brief Adds all the symbols in the variable list to the global declaration.
- *
- * @param type The symbol type.
- * @param var_list The head of the linked list containing variable declarations.
- */
-void add_symbols(SymbolType type, VariableData *var_list);
-
-/**
- * @brief Prints all global declarations.
- */
-void print_decls();
-
-/**
- * @brief Frees all global declarations.
- */
-void free_decls();
-
-/**
- * @brief Enumeration for statement types.
- */
-typedef enum
-{
-    STMT_ASSIGN, /**< Assignment statement */
-    STMT_WRITE,  /**< Write statement */
-    STMT_IF,     /**< If statement */
-    STMT_FOR,    /**< For loop statement */
-    STMT_BREAK   /**< Break statement */
+    STMT_FOR,    /**< For loop statement. */
+    STMT_IF,     /**< If statement. */
+    STMT_WRITE,  /**< Write (output) statement. */
+    STMT_ASSIGN, /**< Assignment statement. */
+    STMT_BREAK,  /**< Break statement. */
+    STMT_DECL    /**< Declaration statement. */
 } StatementType;
 
 /**
- * @brief Enumeration for AST node types.
+ * @enum NodeType
+ * @brief Enumeration of possible AST node types.
  */
 typedef enum
 {
-    NODE_NUM,    /**< Numeric literal node */
-    NODE_VAR,    /**< Variable node */
-    NODE_ARRAY,  /**< Array access node */
-    NODE_EXPR,   /**< Expression node */
-    NODE_ASSIGN, /**< Assignment node */
-    NODE_WRITE,  /**< Write statement node */
-    NODE_IF,     /**< If statement node */
-    NODE_FOR,    /**< For loop node */
-    NODE_BOOL,   /**< Boolean literal node */
-    NODE_STRING, /**< String literal node */
-    NODE_BREAK   /**< Break statement node */
+    NODE_EXPR, /**< Expression node. */
+    NODE_NUM,  /**< Numeric constant node. */
+    NODE_VAR,  /**< Variable node. */
+    NODE_ARR,  /**< Array access node. */
+    NODE_BOOL, /**< Boolean constant node. */
+    NODE_DECL  /**< Declaration node (used in STMT_DECL). */
 } NodeType;
 
 /**
- * @brief Enumeration for operation types in expressions.
+ * @enum OperationType
+ * @brief Enumeration of possible operations in expression nodes.
  */
 typedef enum
 {
-    TOKEN_ADD, /**< Addition */
-    TOKEN_SUB, /**< Subtraction */
-    TOKEN_MUL, /**< Multiplication */
-    TOKEN_DIV, /**< Division */
-    TOKEN_MOD, /**< Modulus */
-    TOKEN_LT,  /**< Less than */
-    TOKEN_GT,  /**< Greater than */
-    TOKEN_GE,  /**< Greater than or equal */
-    TOKEN_LE,  /**< Less than or equal */
-    TOKEN_NE,  /**< Not equal */
-    TOKEN_EQ,  /**< Equal */
-    TOKEN_NOT, /**< Logical NOT */
-    TOKEN_AND, /**< Logical AND */
-    TOKEN_OR   /**< Logical OR */
+    OP_ADD, /**< Addition operator. */
+    OP_SUB, /**< Subtraction operator. */
+    OP_MUL, /**< Multiplication operator. */
+    OP_DIV, /**< Division operator. */
+    OP_MOD, /**< Modulus operator. */
+    OP_LT,  /**< Less than operator. */
+    OP_GT,  /**< Greater than operator. */
+    OP_GE,  /**< Greater than or equal operator. */
+    OP_LE,  /**< Less than or equal operator. */
+    OP_NE,  /**< Not equal operator. */
+    OP_EQ,  /**< Equal operator. */
+    OP_AND, /**< Logical AND operator. */
+    OP_OR,  /**< Logical OR operator. */
+    OP_NEG  /**< Logical NOT operator. */
 } OperationType;
 
+typedef struct Node Node;
+typedef struct Statement Statement;
+
 /**
- * @brief Structure representing an AST node.
+ * @struct Node
+ * @brief Represents an AST node.
+ *
+ * Depending on the node type, different union fields are used.
  */
-typedef struct Node
+struct Node
 {
-    NodeType nodetype; /**< Type of the node */
+    NodeType type; /**< Type of the node. */
     union
     {
         struct
         {
-            struct Node *var_expr; /**< Variable expression for assignment */
-            struct Node *expr;     /**< Expression to assign */
-        } assign;
-        struct
-        {
-            struct Node *expr; /**< Expression for write statement */
-        } write;
-        struct
-        {
-            struct Node *cond;           /**< Condition for if statement */
-            struct Statement *then_stmt; /**< Statement executed if condition is true */
-            struct Statement *else_stmt; /**< Statement executed if condition is false */
-        } if_stmt;
-        struct
-        {
-            struct Statement *init;   /**< Initialization statement for loop */
-            struct Node *cond;        /**< Loop condition */
-            struct Statement *update; /**< Update statement for loop */
-            struct Statement *stmts;  /**< Loop body statements */
-        } for_stmt;
-        struct
-        {
-            OperationType op;   /**< Operation type */
-            struct Node *left;  /**< Left operand */
-            struct Node *right; /**< Right operand */
+            OperationType op; /**< Operation type for an expression. */
+            Node *left;       /**< Left operand. */
+            Node *right;      /**< Right operand. */
         } expr;
         struct
         {
-            int val; /**< Numeric value */
+            int num; /**< Numeric value. */
         } num;
         struct
         {
-            char *var; /**< Variable name */
-        } var;
-        struct
-        {
-            char *var;        /**< Array name */
-            struct Node *idx; /**< Index node for array access */
-        } array;
-        struct
-        {
-            bool boolean; /**< Boolean value */
+            bool is_true; /**< Boolean value. */
         } boolean;
         struct
         {
-            char *str; /**< String literal */
-        } string;
+            char *var_name;  /**< Variable name. */
+        } var;
+        struct
+        {
+            char *var_name;  /**< Array name. */
+            Node *index;     /**< Index expression. */
+        } arr;
+        struct
+        {
+            ValueType type; /**< Declaration type (variable or array). */
+            union
+            {
+                struct
+                {
+                    char *var_name; /**< Variable name for a declaration. */
+                } var;
+                struct
+                {
+                    char *var_name; /**< Array name for a declaration. */
+                    int size;       /**< Size of the array. */
+                } arr;
+            } decl_var;
+            Node *next; /**< Pointer to the next declaration node (for merged declarations). */
+        } decl;
     } data;
-} Node;
+};
 
 /**
- * @brief Structure representing a statement.
- */
-typedef struct Statement
-{
-    StatementType stmt_type; /**< Type of the statement */
-    Node *stmt;              /**< Associated AST node */
-    struct Statement *next;  /**< Pointer to the next statement */
-} Statement;
-
-/**
- * @brief Creates a generic statement.
+ * @struct Statement
+ * @brief Represents a statement in the AST.
  *
- * @param stmt_type The type of the statement.
- * @param stmt The associated AST node.
- * @param next The next statement in the sequence.
- * @return Pointer to the created statement.
+ * A statement can be a control structure, assignment, declaration, etc.
  */
-Statement *create_statement(StatementType stmt_type, Node *stmt, Statement *next);
+struct Statement
+{
+    StatementType type; /**< The type of statement. */
+    union
+    {
+        struct
+        {
+            Node *cond;            /**< Condition expression for if statements. */
+            Statement *then_stmts; /**< Statements to execute if condition is true. */
+            Statement *else_stmts; /**< Statements to execute if condition is false. */
+        } if_stmt;
+        struct
+        {
+            Statement *init_stmt;   /**< Initialization statement for for loops. */
+            Node *cond_stmt;        /**< Loop condition expression. */
+            Statement *update_stmt; /**< Update statement for for loops. */
+            Statement *stmts;       /**< Loop body statements. */
+        } for_stmt;
+        struct
+        {
+            Node *var_expr; /**< Variable (or array) being assigned. */
+            Node *expr;     /**< Expression being assigned. */
+        } assign_stmt;
+        struct
+        {
+            bool is_string; /**< Flag indicating if the write is for a string literal. */
+            union
+            {
+                char *string; /**< String literal to write. */
+                Node *expr;   /**< Expression to write. */
+            } write_data;
+        } write_stmt;
+        struct
+        {
+            SymbolType type; /**< Type of declaration (should match SymbolType). */
+            Node *decls;     /**< Merged linked list of declaration nodes. */
+        } decl_stmt;
+    } stmt_data;
+    Statement *next; /**< Pointer to the next statement (used for linking statements together). */
+};
+
+extern bool break_occured;      /**< Global flag indicating if a break statement has occurred. */
+extern Statement *global_stmts; /**< Global pointer to the head of the AST for the program. */
+
+/* ------------------------------------------------------------------------- */
+/*                           Function Prototypes                             */
+/* ------------------------------------------------------------------------- */
+
+/* AST Node Creation Functions */
+
+/**
+ * @brief Creates an expression node.
+ * @param op_type The operation type.
+ * @param left Pointer to the left operand.
+ * @param right Pointer to the right operand.
+ * @return Pointer to the newly created node.
+ */
+Node *create_expr_node(OperationType op_type, Node *left, Node *right);
+
+/**
+ * @brief Creates a numeric constant node.
+ * @param value The numeric value.
+ * @return Pointer to the newly created node.
+ */
+Node *create_num_node(int value);
+
+/**
+ * @brief Creates a variable node.
+ * @param var_name The name of the variable.
+ * @return Pointer to the newly created node.
+ */
+Node *create_var_node(char *var_name);
+
+/**
+ * @brief Creates an array access node.
+ * @param var_name The name of the array.
+ * @param index Pointer to the index expression node.
+ * @return Pointer to the newly created node.
+ */
+Node *create_array_node(char *var_name, Node *index);
+
+/**
+ * @brief Creates a boolean constant node.
+ * @param is_true The boolean value.
+ * @return Pointer to the newly created node.
+ */
+Node *create_bool_node(bool is_true);
+
+/**
+ * @brief Creates a declaration node for a variable.
+ * @param var_name The name of the variable.
+ * @return Pointer to the newly created declaration node.
+ */
+Node *create_var_decl_node(char *var_name);
+
+/**
+ * @brief Creates a declaration node for an array.
+ * @param var_name The name of the array.
+ * @param size The size of the array.
+ * @return Pointer to the newly created declaration node.
+ */
+Node *create_arr_decl_node(char *var_name, int size);
+
+/* AST Statement Creation Functions */
 
 /**
  * @brief Creates an assignment statement.
- *
- * @param var_expr The variable expression node.
- * @param expr The expression node to assign.
- * @return Pointer to the created assignment statement.
+ * @param var_expr The left-hand side variable (or array) node.
+ * @param expr The right-hand side expression node.
+ * @return Pointer to the newly created statement.
  */
 Statement *create_assign_stmt(Node *var_expr, Node *expr);
 
 /**
  * @brief Creates a for loop statement.
- *
- * @param init The initialization statement.
- * @param cond The loop condition node.
- * @param update The update statement.
- * @param stmts The body statements.
- * @return Pointer to the created for loop statement.
+ * @param init Pointer to the initialization statement.
+ * @param cond Pointer to the condition expression.
+ * @param update Pointer to the update statement.
+ * @param stmts Pointer to the loop body statements.
+ * @return Pointer to the newly created for loop statement.
  */
 Statement *create_for_stmt(Statement *init, Node *cond, Statement *update, Statement *stmts);
 
 /**
  * @brief Creates an if statement.
- *
- * @param cond The condition node.
- * @param if_stmt The statement executed if condition is true.
- * @param else_stmt The statement executed if condition is false.
- * @return Pointer to the created if statement.
+ * @param cond Pointer to the condition expression.
+ * @param then_stmts Pointer to the then branch statements.
+ * @param else_stmts Pointer to the else branch statements.
+ * @return Pointer to the newly created if statement.
  */
-Statement *create_if_stmt(Node *cond, Statement *if_stmt, Statement *else_stmt);
+Statement *create_if_stmt(Node *cond, Statement *then_stmts, Statement *else_stmts);
 
 /**
- * @brief Creates a write statement for an expression.
- *
- * @param expr The expression node to write.
- * @return Pointer to the created write statement.
+ * @brief Creates a write statement.
+ * @param is_str True if writing a string literal; false if writing an expression.
+ * @param expr Pointer to the expression node (if not a string).
+ * @param string The string literal (if is_str is true).
+ * @return Pointer to the newly created write statement.
  */
-Statement *create_write_stmt(Node *expr);
-
-/**
- * @brief Creates a write statement for a string literal.
- *
- * @param str The string literal.
- * @return Pointer to the created write statement.
- */
-Statement *create_write_stmt_string(char *str);
+Statement *create_write_stmt(bool is_str, Node *expr, char *string);
 
 /**
  * @brief Creates a break statement.
- *
- * @return Pointer to the created break statement.
+ * @return Pointer to the newly created break statement.
  */
-Statement *create_break_stmt(void);
+Statement *create_break_stmt();
 
 /**
- * @brief Creates an AST node for a variable.
- *
- * @param var The variable name.
- * @return Pointer to the created variable node.
+ * @brief Creates a declaration statement.
+ * @param type The symbol type for the declarations.
+ * @param decls Pointer to the merged declaration nodes.
+ * @return Pointer to the newly created declaration statement.
  */
-Node *create_var_node(char *var);
+Statement *create_decl_stmt(SymbolType type, Node *decls);
 
 /**
- * @brief Creates an AST node for an array access.
+ * @brief Merges the three AST segments into one contiguous chain.
  *
- * @param var The array name.
- * @param idx_node The index node.
- * @return Pointer to the created array access node.
+ * The segments merged are:
+ * - Global declarations (gdecls)
+ * - Local declarations (ldecls)
+ * - Main block statements (mainblock)
+ *
+ * @param gdecls Pointer to the head of global declaration statements.
+ * @param ldecls Pointer to the head of local declaration statements.
+ * @param mainblock Pointer to the head of main block statements.
+ * @return Pointer to the head of the merged AST.
  */
-Node *create_array_node(char *var, Node *idx_node);
+Statement *merge_ast_segments(Statement *gdecls, Statement *ldecls, Statement *mainblock);
+
+/* Evaluation Functions */
 
 /**
- * @brief Creates an AST node for an expression.
- *
- * @param op The operation type.
- * @param left The left operand node.
- * @param right The right operand node.
- * @return Pointer to the created expression node.
+ * @brief Evaluates the entire AST of statements.
+ * @param stmts Pointer to the head of the statement list.
  */
-Node *create_expr_node(OperationType op, Node *left, Node *right);
-
-/**
- * @brief Creates an AST node for a numeric literal.
- *
- * @param value The numeric value.
- * @return Pointer to the created numeric node.
- */
-Node *create_num_node(int value);
-
-/**
- * @brief Creates an AST node for a boolean literal.
- *
- * @param boolean The boolean value.
- * @return Pointer to the created boolean node.
- */
-Node *create_bool_node(bool boolean);
-
-/**
- * @brief Evaluates a sequence of statements.
- *
- * @param stmt Pointer to the first statement.
- * @return Boolean indicating success or failure of evaluation.
- */
-bool eval_stmts(Statement *stmt);
+void eval_stmts(Statement *stmts);
 
 /**
  * @brief Evaluates an assignment statement.
- *
- * @param assign_stmt The assignment AST node.
+ * @param var_expr The left-hand side variable (or array) node.
+ * @param expr The right-hand side expression node.
  */
-void eval_assign(Node *assign_stmt);
+void eval_assign_stmt(Node *var_expr, Node *expr);
 
 /**
- * @brief Evaluates an expression node and returns its integer value.
- *
- * @param expr The expression node.
+ * @brief Evaluates an if statement.
+ * @param cond Pointer to the condition expression.
+ * @param then_stmts Pointer to the then branch statements.
+ * @param else_stmts Pointer to the else branch statements.
+ */
+void eval_if_stmt(Node *cond, Statement *then_stmts, Statement *else_stmts);
+
+/**
+ * @brief Evaluates a for loop statement.
+ * @param init Pointer to the initialization statement.
+ * @param cond Pointer to the condition expression.
+ * @param update Pointer to the update statement.
+ * @param stmts Pointer to the loop body statements.
+ */
+void eval_for_stmt(Statement *init, Node *cond, Statement *update, Statement *stmts);
+
+/**
+ * @brief Checks if the given yields a boolean node or not.
+ * @param expr Node that is to be checked.
+ * @return true if the node yields a boolean value false else.
+ */
+bool is_boolean_expr(Node *expr);
+
+/**
+ * @brief Evaluates a write statement.
+ * @param is_str True if writing a string literal; false if writing an expression.
+ * @param expr Pointer to the expression node (if not a string).
+ * @param string The string literal (if is_str is true).
+ */
+void eval_write_stmt(bool is_str, Node *expr, char *string);
+
+/**
+ * @brief Evaluates a break statement.
+ */
+void eval_break_stmt();
+
+/**
+ * @brief Evaluates a declaration statement.
+ * @param type The symbol type for the declarations.
+ * @param decls Pointer to the merged declaration nodes.
+ */
+void eval_decl_stmt(SymbolType type, Node *decls);
+
+/**
+ * @brief Evaluates an expression node and returns an integer value.
+ * @param expr Pointer to the expression node.
  * @return The evaluated integer value.
  */
-int eval_expr_val(Node *expr);
+int eval_expr_int(Node *expr);
 
 /**
- * @brief Evaluates an expression node and returns its boolean value.
- *
- * @param expr The expression node.
+ * @brief Evaluates an expression node and returns a boolean value.
+ * @param expr Pointer to the expression node.
  * @return The evaluated boolean value.
  */
 bool eval_expr_bool(Node *expr);
 
-/**
- * @brief Evaluates a for loop statement.
- *
- * @param for_stmt The for loop statement.
- */
-void eval_for(Node *for_stmt);
+/* Memory Freeing Functions */
 
 /**
- * @brief Evaluates an if statement.
- *
- * @param if_stmt The if statement node.
+ * @brief Frees the entire AST of statements.
  */
-void eval_if(Node *if_stmt);
+void free_statements();
 
 /**
- * @brief Evaluates a write statement.
- *
- * @param write_stmt The write statement node.
+ * @brief Frees a chain of declaration nodes.
+ * @param decl Pointer to the first declaration node.
  */
-void eval_write(Node *write_stmt);
+void free_decl(Node *decl);
 
 /**
- * @brief Evaluates a break statement.
- *
- * @param break_node The break statement node.
+ * @brief Frees an expression node and its subnodes.
+ * @param expr Pointer to the expression node.
  */
-void eval_break(Node *break_node);
+void free_expr(Node *expr);
 
 /**
- * @brief Prints the given prefix string.
- *
- * @param prefix The prefix string to print.
+ * @brief Recursively frees a statement node and its sub-statements.
+ * @param stmt Pointer to the statement node.
  */
-void print_prefix(const char *prefix);
+void free_statement_rec(Statement *stmt);
+
+/* AST Printing Functions */
 
 /**
- * @brief Constructs the child prefix based on the parent's prefix.
- *
- * @param parentPrefix The parent's prefix string.
- * @param isLast Boolean indicating if the current node is the last child.
- * @param childPrefix Buffer to store the child prefix.
- * @param size Size of the buffer.
+ * @brief Prints the branch prefix for the AST tree.
+ * @param prefix The accumulated prefix string.
+ * @param isLast True if this branch is the last child.
  */
-void make_child_prefix(const char *parentPrefix, bool isLast, char *childPrefix, size_t size);
+void print_tree_prefix(const char *prefix, bool isLast);
 
 /**
- * @brief Prints an AST node with the given prefix.
- *
- * @param node The AST node to print.
- * @param prefix The prefix string.
- * @param isLast Boolean indicating if the node is the last in its group.
+ * @brief Recursively prints an expression node in a tree-like format.
+ * @param expr Pointer to the expression node.
+ * @param prefix The prefix string for formatting.
+ * @param isLast True if this node is the last child.
  */
-void print_node(Node *node, const char *prefix, bool isLast);
+void print_ast_expr(Node *expr, const char *prefix, bool isLast);
 
 /**
- * @brief Prints a sequence of statements with the given prefix.
- *
- * @param stmt The first statement in the sequence.
- * @param prefix The prefix string.
+ * @brief Recursively prints a statement node in a tree-like format.
+ * @param stmt Pointer to the statement node.
+ * @param prefix The prefix string for formatting.
+ * @param isLast True if this statement is the last child.
  */
-void print_statements(Statement *stmt, const char *prefix);
+void print_ast_stmt(Statement *stmt, const char *prefix, bool isLast);
 
 /**
- * @brief Frees the memory allocated for an AST node.
- *
- * @param node The node to free.
+ * @brief Prints a list of statement nodes in a tree-like format.
+ * @param stmts Pointer to the head of the statement list.
+ * @param prefix The prefix string for formatting.
  */
-void free_node(Node *node);
+void print_ast_stmt_list(Statement *stmts, const char *prefix);
 
 /**
- * @brief Frees the memory allocated for a sequence of statements.
- *
- * @param stmt The first statement in the sequence to free.
+ * @brief Prints the entire AST.
  */
-void free_statements(Statement *stmt);
+void print_ast(void);
 
-#endif // COMPILER_H
+#endif

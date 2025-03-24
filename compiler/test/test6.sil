@@ -1,0 +1,14 @@
+decl
+    boolean a, b, c;
+enddecl
+
+begin
+    a = true;
+    b = false;
+    c = a AND NOT b;
+    if c then
+        write(c);
+    else
+        write(false);
+    endif
+end
