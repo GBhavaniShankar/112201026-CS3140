@@ -5,7 +5,7 @@ INCLUDE = include
 SRCS    = src/sym_tab.c src/statement.c
 
 all:
-	@yacc -d $(SOURCE)/$(PROGRAM).y -Wnone
+	@yacc -d $(SOURCE)/$(PROGRAM).y
 	@lex $(SOURCE)/$(PROGRAM).l
 	@mkdir -p $(BIN)
 	@gcc -o $(BIN)/$(PROGRAM) lex.yy.c y.tab.c $(SRCS) -w -I ./$(INCLUDE)
