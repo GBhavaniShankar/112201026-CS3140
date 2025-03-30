@@ -142,7 +142,7 @@ Gdecl:
 
 ret_type:
       T_INT       { $$ = SYMBOL_INT; }
-      | T_BOOL    { $$ = SYMBOL_BOOL; }
+      | T_BOOL {}
 ;
 
 Glist:
@@ -343,7 +343,7 @@ expr:
     | LOGICAL_NOT expr { $$ = create_expr_node(OP_NEG, NULL, $2); }
     | expr LOGICAL_AND expr { $$ = create_expr_node(OP_AND, $1, $3); }
     | expr LOGICAL_OR expr { $$ = create_expr_node(OP_OR, $1, $3); }
-    | func_call { $$ = $1; }
+    | func_call { }
 ;
 
 var_expr:

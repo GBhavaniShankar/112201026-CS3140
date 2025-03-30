@@ -39,10 +39,8 @@
  */
 typedef enum
 {
-    SYMBOL_INT,       /**< Integer variable symbol. */
-    SYMBOL_INT_ARRAY, /**< Integer array symbol. */
-    SYMBOL_BOOL,      /**< Boolean variable symbol. */
-    SYMBOL_BOOL_ARRAY /**< Boolean array symbol. */
+    SYMBOL_INT,      /**< Integer variable symbol. */
+    SYMBOL_INT_ARRAY /**< Integer array symbol. */
 } SymbolType;
 
 /**
@@ -61,16 +59,6 @@ typedef union
         int *array; /**< Pointer to the integer array. */
         int size;   /**< Size of the integer array. */
     } int_array;
-    struct
-    {
-        bool value;      /**< Value for an Boolean variable. */
-        bool is_defined; /**< Flag indicating if the variable is defined. */
-    } bool_value;
-    struct
-    {
-        bool *array; /**< Pointer to the boolean array. */
-        int size;    /**< Size of the boolean array. */
-    } bool_array;
 } SymbolValue;
 
 /**
@@ -120,19 +108,6 @@ void create_symbol_int(const char *key);
 void create_symbol_int_array(const char *key, int size);
 
 /**
- * @brief Creates a new boolean symbol.
- * @param key The identifier name.
- */
-void create_symbol_bool(const char *key);
-
-/**
- * @brief Creates a new boolean array symbol.
- * @param key The identifier name.
- * @param size The size of the array.
- */
-void create_symbol_bool_array(const char *key, int size);
-
-/**
  * @brief Searches for a symbol by key.
  * @param key The identifier name.
  * @return Pointer to the symbol if found; otherwise, NULL.
@@ -162,21 +137,6 @@ void update_symbol_int(const char *key, int value);
 void update_symbol_int_array(const char *key, int index, int value);
 
 /**
- * @brief Updates the value of an boolean symbol.
- * @param key The identifier name.
- * @param value The new value.
- */
-void update_symbol_bool(const char *key, int value);
-
-/**
- * @brief Updates the value at a given index in an boolean array symbol.
- * @param key The identifier name.
- * @param index The index to update.
- * @param value The new value.
- */
-void update_symbol_bool_array(const char *key, int index, int value);
-
-/**
  * @brief Retrieves the integer value of a symbol.
  * @param key The identifier name.
  * @return The integer value.
@@ -190,21 +150,6 @@ int lookup_int(const char *key);
  * @return The integer value at the specified index.
  */
 int lookup_int_arr(const char *key, int index);
-
-/**
- * @brief Retrieves the boolean value of a symbol.
- * @param key The identifier name.
- * @return The integer value.
- */
-bool lookup_bool(const char *key);
-
-/**
- * @brief Retrieves the boolean value from an array symbol at a specific index.
- * @param key The identifier name.
- * @param index The index to lookup.
- * @return The boolean value at the specified index.
- */
-bool lookup_bool_arr(const char *key, int index);
 
 /**
  * @brief Frees memory associated with a symbol.
@@ -321,12 +266,12 @@ struct Node
         } boolean;
         struct
         {
-            char *var_name;  /**< Variable name. */
+            char *var_name; /**< Variable name. */
         } var;
         struct
         {
-            char *var_name;  /**< Array name. */
-            Node *index;     /**< Index expression. */
+            char *var_name; /**< Array name. */
+            Node *index;    /**< Index expression. */
         } arr;
         struct
         {

@@ -71,29 +71,6 @@ void create_symbol_int_array(const char *key, int size)
         symbol->value.int_array.array[i] = 0;
 }
 
-void create_symbol_bool(const char *key)
-{
-    Symbol *symbol = create_symbol(key);
-    symbol->type = SYMBOL_BOOL;
-    symbol->value.bool_value.value = false;
-    symbol->value.bool_value.is_defined = false;
-}
-
-void create_symbol_bool_array(const char *key, int size)
-{
-    Symbol *symbol = create_symbol(key);
-    symbol->type = SYMBOL_BOOL_ARRAY;
-    symbol->value.bool_array.size = size;
-    symbol->value.bool_array.array = malloc(sizeof(bool) * size);
-    if (!symbol->value.bool_array.array)
-    {
-        fprintf(stderr, "Memory allocation error for bool array\n");
-        exit(EXIT_FAILURE);
-    }
-    for (int i = 0; i < size; i++)
-        symbol->value.bool_array.array[i] = false;
-}
-
 Symbol *search_symbol(const char *key)
 {
     unsigned int index = hash(key);
@@ -141,40 +118,6 @@ void update_symbol_int_array(const char *key, int index, int value)
     }
 }
 
-void update_symbol_bool(const char *key, int value)
-{
-    Symbol *symbol = search_symbol(key);
-    if (symbol && symbol->type == SYMBOL_BOOL)
-    {
-        symbol->value.bool_value.value = value;
-        symbol->value.bool_value.is_defined = true;
-    }
-    else
-    {
-        fprintf(stderr, "Symbol not found or type mismatch for %s\n", key);
-    }
-}
-
-void update_symbol_bool_array(const char *key, int index, int value)
-{
-    Symbol *symbol = search_symbol(key);
-    if (symbol && symbol->type == SYMBOL_BOOL_ARRAY)
-    {
-        if (index >= 0 && index < symbol->value.bool_array.size)
-        {
-            symbol->value.bool_array.array[index] = value;
-        }
-        else
-        {
-            fprintf(stderr, "Index out of bounds for bool array %s\n", key);
-        }
-    }
-    else
-    {
-        fprintf(stderr, "Symbol not found or type mismatch for %s\n", key);
-    }
-}
-
 int lookup_int(const char *key)
 {
     Symbol *symbol = search_symbol(key);
@@ -209,54 +152,12 @@ int lookup_int_arr(const char *key, int index)
         fprintf(stderr, "Symbol type mismatch for %s: expected int array\n", key);
         exit(EXIT_FAILURE);
     }
-    if (index < 0 || index >= symbol->value.bool_array.size)
+    if (index < 0 || index >= symbol->value.int_array.size)
     {
         fprintf(stderr, "Index out of bounds for int array %s\n", key);
         exit(EXIT_FAILURE);
     }
     return symbol->value.int_array.array[index];
-}
-
-bool lookup_bool(const char *key)
-{
-    Symbol *symbol = search_symbol(key);
-    if (!symbol)
-    {
-        fprintf(stderr, "Symbol not found: %s\n", key);
-        exit(EXIT_FAILURE);
-    }
-    if (symbol->type != SYMBOL_BOOL)
-    {
-        fprintf(stderr, "Symbol type mismatch for %s: expected bool\n", key);
-        exit(EXIT_FAILURE);
-    }
-    if (!symbol->value.bool_value.is_defined)
-    {
-        fprintf(stderr, "Symbol %s is not defined.\n", key);
-        exit(EXIT_FAILURE);
-    }
-    return symbol->value.bool_value.value;
-}
-
-bool lookup_bool_arr(const char *key, int index)
-{
-    Symbol *symbol = search_symbol(key);
-    if (!symbol)
-    {
-        fprintf(stderr, "Symbol not found: %s\n", key);
-        exit(EXIT_FAILURE);
-    }
-    if (symbol->type != SYMBOL_BOOL_ARRAY)
-    {
-        fprintf(stderr, "Symbol type mismatch for %s: expected bool array\n", key);
-        exit(EXIT_FAILURE);
-    }
-    if (index < 0 || index >= symbol->value.bool_array.size)
-    {
-        fprintf(stderr, "Index out of bounds for bool array %s\n", key);
-        exit(EXIT_FAILURE);
-    }
-    return symbol->value.bool_array.array[index];
 }
 
 void free_symbol(Symbol *symbol)
@@ -271,12 +172,6 @@ void free_symbol(Symbol *symbol)
         break;
     case SYMBOL_INT_ARRAY:
         free(symbol->value.int_array.array);
-        break;
-    case SYMBOL_BOOL:
-        /* no extra allocation */
-        break;
-    case SYMBOL_BOOL_ARRAY:
-        free(symbol->value.bool_array.array);
         break;
     }
     free(symbol);
@@ -339,12 +234,6 @@ void print_symbol_table()
             case SYMBOL_INT_ARRAY:
                 strcpy(type_buf, "INT ARRAY");
                 break;
-            case SYMBOL_BOOL:
-                strcpy(type_buf, "BOOL");
-                break;
-            case SYMBOL_BOOL_ARRAY:
-                strcpy(type_buf, "BOOL ARRAY");
-                break;
             default:
                 strcpy(type_buf, "N/A");
                 break;
@@ -376,33 +265,6 @@ void print_symbol_table()
                     snprintf(num_buf, sizeof(num_buf), "%d", cur->value.int_array.array[j]);
                     strcat(buffer, num_buf);
                     if (j < cur->value.int_array.size - 1)
-                        strcat(buffer, ", ");
-                }
-                strcat(buffer, "]");
-                rows[row_index].value_lines[0] = strdup(buffer);
-            }
-            else if (cur->type == SYMBOL_BOOL)
-            {
-                rows[row_index].num_value_lines = 1;
-                rows[row_index].value_lines = malloc(sizeof(char *));
-                if (cur->value.bool_value.is_defined)
-                    snprintf(buffer, sizeof(buffer), "%s", cur->value.bool_value.value ? "true" : "false");
-                else
-                    snprintf(buffer, sizeof(buffer), "UNDEF");
-                rows[row_index].value_lines[0] = strdup(buffer);
-            }
-            else if (cur->type == SYMBOL_BOOL_ARRAY)
-            {
-                rows[row_index].num_value_lines = 1;
-                rows[row_index].value_lines = malloc(sizeof(char *));
-                buffer[0] = '\0';
-                strcpy(buffer, "[");
-                for (int j = 0; j < cur->value.bool_array.size; j++)
-                {
-                    char num_buf[64];
-                    snprintf(num_buf, sizeof(num_buf), "%s", cur->value.bool_array.array[j] ? "true" : "false");
-                    strcat(buffer, num_buf);
-                    if (j < cur->value.bool_array.size - 1)
                         strcat(buffer, ", ");
                 }
                 strcat(buffer, "]");

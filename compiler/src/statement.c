@@ -230,10 +230,12 @@ void eval_stmts(Statement *stmts)
             break;
         }
         case STMT_DECL:
+        {
             SymbolType type = stmt->stmt_data.decl_stmt.type;
             Node *decls = stmt->stmt_data.decl_stmt.decls;
             eval_decl_stmt(type, decls);
             break;
+        }
         }
         stmt = stmt->next;
     }
@@ -375,25 +377,6 @@ bool eval_expr_bool(Node *expr)
         case NODE_NUM:
             fprintf(stderr, "Error in evaluating / assigning the expression due to type conflict...!\n");
             exit(EXIT_FAILURE);
-        case NODE_VAR:
-            if (find_symbol_type(expr->data.var.var_name) == SYMBOL_BOOL)
-                return lookup_bool(expr->data.var.var_name);
-            else
-            {
-                fprintf(stderr, "Error in evaluating / assigning the expression due to type conflict...!\n");
-                exit(EXIT_FAILURE);
-            }
-        case NODE_ARR:
-            if (find_symbol_type(expr->data.arr.var_name) == SYMBOL_BOOL_ARRAY)
-            {
-                int index = eval_expr_int(expr->data.arr.index);
-                return lookup_bool_arr(expr->data.arr.var_name, index);
-            }
-            else
-            {
-                fprintf(stderr, "Error in evaluating / assigning the expression due to type conflict...!\n");
-                exit(EXIT_FAILURE);
-            }
         default:
             return false;
         }
@@ -410,14 +393,16 @@ void eval_assign_stmt(Node *var_expr, Node *expr)
         {
         case SYMBOL_INT:
         {
-            int value_int = eval_expr_int(expr);
-            update_symbol_int(var_expr->data.var.var_name, value_int);
-            break;
-        }
-        case SYMBOL_BOOL:
-        {
-            bool value_bool = eval_expr_bool(expr);
-            update_symbol_bool(var_expr->data.var.var_name, value_bool);
+            if (is_boolean_expr(expr))
+            {
+                fprintf(stderr, "The expression that evaluetes the value of %s is not of its type...!\n", var_expr->data.var.var_name);
+                exit(EXIT_FAILURE);
+            }
+            else
+            {
+                int value_int = eval_expr_int(expr);
+                update_symbol_int(var_expr->data.var.var_name, value_int);
+            }
             break;
         }
         default:
@@ -434,12 +419,6 @@ void eval_assign_stmt(Node *var_expr, Node *expr)
         {
             int value_arr_int = eval_expr_int(expr);
             update_symbol_int_array(var_expr->data.arr.var_name, index, value_arr_int);
-            break;
-        }
-        case SYMBOL_BOOL_ARRAY:
-        {
-            bool value_arr_bool = eval_expr_bool(expr);
-            update_symbol_bool_array(var_expr->data.arr.var_name, index, value_arr_bool);
             break;
         }
         default:
@@ -495,16 +474,6 @@ bool is_boolean_expr(Node *expr)
     {
     case NODE_BOOL:
         return true;
-    case NODE_VAR:
-    {
-        SymbolType t = find_symbol_type(expr->data.var.var_name);
-        return (t == SYMBOL_BOOL);
-    }
-    case NODE_ARR:
-    {
-        SymbolType t = find_symbol_type(expr->data.arr.var_name);
-        return (t == SYMBOL_BOOL_ARRAY);
-    }
     case NODE_EXPR:
     {
         OperationType op = expr->data.expr.op;
@@ -572,28 +541,18 @@ void eval_decl_stmt(SymbolType type, Node *decls)
             switch (val_type)
             {
             case VARIABLE:
+            {
                 char *var_name = decl->data.decl.decl_var.var.var_name;
                 create_symbol_int(var_name);
                 break;
+            }
             case ARRAY_1D:
+            {
                 char *arr_name = decl->data.decl.decl_var.arr.var_name;
                 int size = decl->data.decl.decl_var.arr.size;
                 create_symbol_int_array(arr_name, size);
                 break;
             }
-            break;
-        case SYMBOL_BOOL:
-            switch (val_type)
-            {
-            case VARIABLE:
-                char *var_name = decl->data.decl.decl_var.var.var_name;
-                create_symbol_bool(var_name);
-                break;
-            case ARRAY_1D:
-                char *arr_name = decl->data.decl.decl_var.arr.var_name;
-                int size = decl->data.decl.decl_var.arr.size;
-                create_symbol_bool_array(arr_name, size);
-                break;
             }
             break;
         }
