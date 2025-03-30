@@ -142,6 +142,15 @@ Statement *create_decl_stmt(SymbolType type, Node *decls)
     return newStatement;
 }
 
+Statement *create_read_stmt(Node *var_expr)
+{
+    Statement *newStatement = (Statement *)malloc(sizeof(Statement));
+    newStatement->type = STMT_READ;
+    newStatement->stmt_data.read_stmt.var_expr = var_expr;
+    newStatement->next = NULL;
+    return newStatement;
+}
+
 Statement *merge_ast_segments(Statement *gdecls, Statement *ldecls, Statement *mainblock)
 {
     Statement *head = NULL, *temp = NULL;

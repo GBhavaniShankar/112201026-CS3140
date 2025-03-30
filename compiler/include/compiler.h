@@ -44,6 +44,16 @@ typedef enum
 } SymbolType;
 
 /**
+ * @enum ValueType
+ * @brief Enumeration of possible value types.
+ */
+typedef enum
+{
+    INTEGER, /**< Integer value expression. */
+    BOOL     /**< Boolean value expression. */
+} ValueType;
+
+/**
  * @union SymbolValue
  * @brief Union for storing the value of a symbol.
  */
@@ -197,7 +207,8 @@ typedef enum
     STMT_WRITE,  /**< Write (output) statement. */
     STMT_ASSIGN, /**< Assignment statement. */
     STMT_BREAK,  /**< Break statement. */
-    STMT_DECL    /**< Declaration statement. */
+    STMT_DECL,   /**< Declaration statement. */
+    STMT_READ    /**< Read Statement. */
 } StatementType;
 
 /**
@@ -336,6 +347,10 @@ struct Statement
             SymbolType type; /**< Type of declaration (should match SymbolType). */
             Node *decls;     /**< Merged linked list of declaration nodes. */
         } decl_stmt;
+        struct
+        {
+            Node *var_expr; /**< Variable or Array[index] that is to be read. */
+        } read_stmt;
     } stmt_data;
     Statement *next; /**< Pointer to the next statement (used for linking statements together). */
 };
@@ -421,6 +436,13 @@ Statement *create_assign_stmt(Node *var_expr, Node *expr);
  * @return Pointer to the newly created for loop statement.
  */
 Statement *create_for_stmt(Statement *init, Node *cond, Statement *update, Statement *stmts);
+
+/**
+ * @brief Creates a read statement.
+ * @param var_expr Pointer to the variable expression statement.
+ * @return Pointer to the newly created for loop statement.
+ */
+Statement *create_read_stmt(Node *var_expr);
 
 /**
  * @brief Creates an if statement.
