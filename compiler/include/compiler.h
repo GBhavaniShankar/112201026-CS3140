@@ -44,16 +44,6 @@ typedef enum
 } SymbolType;
 
 /**
- * @enum ValueType
- * @brief Enumeration of possible value types.
- */
-typedef enum
-{
-    INTEGER, /**< Integer value expression. */
-    BOOL     /**< Boolean value expression. */
-} ValueType;
-
-/**
  * @union SymbolValue
  * @brief Union for storing the value of a symbol.
  */
@@ -625,5 +615,24 @@ void print_ast_stmt_list(Statement *stmts, const char *prefix);
  * @brief Prints the entire AST.
  */
 void print_ast(void);
+
+/*Assembly function declrations*/
+
+/* Code Generation Functions */
+void init_code_gen(const char *filename);
+void generate_code(Statement *stmts);
+void generate_vars(Statement *stmts);
+void generate_expr_code(Node *expr);
+void generate_if_else_code(Node *cond, Statement *then_stmts, Statement *else_stmts);
+void generate_for_code(Statement *init, Node *cond, Statement *update, Statement *body);
+void generate_assignment_code(Node *var_expr, Node *expr);
+void generate_write_code(bool is_string, Node *expr, char *string);
+void generate_read_code(Node *var_expr);
+void generate_break_code();
+void generate_main_code();
+void generate_end_code();
+FILE *open_output_file(const char *input_filename);
+void close_output_file(FILE *file);
+void eval_stmts_for_asm(Statement *stmts);
 
 #endif

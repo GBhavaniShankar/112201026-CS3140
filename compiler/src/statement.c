@@ -195,49 +195,49 @@ void eval_stmts(Statement *stmts)
 
         switch (stmt->type)
         {
-        case STMT_ASSIGN:
-        {
-            Node *var_expr = stmt->stmt_data.assign_stmt.var_expr;
-            Node *expr = stmt->stmt_data.assign_stmt.expr;
-            eval_assign_stmt(var_expr, expr);
-            break;
-        }
-        case STMT_FOR:
-        {
-            Statement *init = stmt->stmt_data.for_stmt.init_stmt;
-            Node *cond = stmt->stmt_data.for_stmt.cond_stmt;
-            Statement *update = stmt->stmt_data.for_stmt.update_stmt;
-            Statement *stmts_to_eval = stmt->stmt_data.for_stmt.stmts;
-            eval_for_stmt(init, cond, update, stmts_to_eval);
-            break;
-        }
-        case STMT_IF:
-        {
-            Node *cond = stmt->stmt_data.if_stmt.cond;
-            Statement *then_stmts = stmt->stmt_data.if_stmt.then_stmts;
-            Statement *else_stmts = stmt->stmt_data.if_stmt.else_stmts;
-            eval_if_stmt(cond, then_stmts, else_stmts);
-            break;
-        }
-        case STMT_WRITE:
-        {
-            if (stmt->stmt_data.write_stmt.is_string)
-            {
-                char *str = stmt->stmt_data.write_stmt.write_data.string;
-                eval_write_stmt(true, NULL, str);
-            }
-            else
-            {
-                Node *expr = stmt->stmt_data.write_stmt.write_data.expr;
-                eval_write_stmt(false, expr, "");
-            }
-            break;
-        }
-        case STMT_BREAK:
-        {
-            eval_break_stmt();
-            break;
-        }
+        // case STMT_ASSIGN:
+        // {
+        //     Node *var_expr = stmt->stmt_data.assign_stmt.var_expr;
+        //     Node *expr = stmt->stmt_data.assign_stmt.expr;
+        //     eval_assign_stmt(var_expr, expr);
+        //     break;
+        // }
+        // case STMT_FOR:
+        // {
+        //     Statement *init = stmt->stmt_data.for_stmt.init_stmt;
+        //     Node *cond = stmt->stmt_data.for_stmt.cond_stmt;
+        //     Statement *update = stmt->stmt_data.for_stmt.update_stmt;
+        //     Statement *stmts_to_eval = stmt->stmt_data.for_stmt.stmts;
+        //     eval_for_stmt(init, cond, update, stmts_to_eval);
+        //     break;
+        // }
+        // case STMT_IF:
+        // {
+        //     Node *cond = stmt->stmt_data.if_stmt.cond;
+        //     Statement *then_stmts = stmt->stmt_data.if_stmt.then_stmts;
+        //     Statement *else_stmts = stmt->stmt_data.if_stmt.else_stmts;
+        //     eval_if_stmt(cond, then_stmts, else_stmts);
+        //     break;
+        // }
+        // case STMT_WRITE:
+        // {
+        //     if (stmt->stmt_data.write_stmt.is_string)
+        //     {
+        //         char *str = stmt->stmt_data.write_stmt.write_data.string;
+        //         eval_write_stmt(true, NULL, str);
+        //     }
+        //     else
+        //     {
+        //         Node *expr = stmt->stmt_data.write_stmt.write_data.expr;
+        //         eval_write_stmt(false, expr, "");
+        //     }
+        //     break;
+        // }
+        // case STMT_BREAK:
+        // {
+        //     eval_break_stmt();
+        //     break;
+        // }
         case STMT_DECL:
         {
             SymbolType type = stmt->stmt_data.decl_stmt.type;
@@ -787,6 +787,8 @@ void print_ast_stmt(Statement *stmt, const char *prefix, bool isLast)
             ; // Print the list below.
         // We'll print the list of init statements.
         // Condition.
+        if (stmt->stmt_data.for_stmt.init_stmt)
+            print_ast_stmt_list(stmt->stmt_data.for_stmt.init_stmt, newPrefix);
         print_tree_prefix(newPrefix, false);
         printf("Condition:\n");
         print_ast_expr(stmt->stmt_data.for_stmt.cond_stmt, newPrefix, true);
@@ -795,16 +797,14 @@ void print_ast_stmt(Statement *stmt, const char *prefix, bool isLast)
         printf("Update:\n");
         if (stmt->stmt_data.for_stmt.update_stmt)
             ; // Print the list below.
+        if (stmt->stmt_data.for_stmt.update_stmt)
+            print_ast_stmt_list(stmt->stmt_data.for_stmt.update_stmt, newPrefix);
         // Body.
         print_tree_prefix(newPrefix, true);
         printf("Body:\n");
         if (stmt->stmt_data.for_stmt.stmts)
             ; // Print the list below.
         // For lists, we'll use the helper function below.
-        if (stmt->stmt_data.for_stmt.init_stmt)
-            print_ast_stmt_list(stmt->stmt_data.for_stmt.init_stmt, newPrefix);
-        if (stmt->stmt_data.for_stmt.update_stmt)
-            print_ast_stmt_list(stmt->stmt_data.for_stmt.update_stmt, newPrefix);
         if (stmt->stmt_data.for_stmt.stmts)
             print_ast_stmt_list(stmt->stmt_data.for_stmt.stmts, newPrefix);
         break;
@@ -844,6 +844,12 @@ void print_ast_stmt(Statement *stmt, const char *prefix, bool isLast)
             printf("Expr:\n");
             print_ast_expr(stmt->stmt_data.write_stmt.write_data.expr, newPrefix, true);
         }
+        break;
+    case STMT_READ:
+        print_tree_prefix(prefix, isLast);
+        printf(BLUE "Read" RESET "\n");
+        snprintf(newPrefix, sizeof(newPrefix), "%s%s", prefix, isLast ? "    " : "│   ");
+        print_ast_expr(stmt->stmt_data.read_stmt.var_expr, newPrefix, true);
         break;
     case STMT_BREAK:
         print_tree_prefix(prefix, isLast);

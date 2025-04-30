@@ -25,57 +25,142 @@
     extern Statement *global_stmts;
     extern Symbol *symbol_table[TABLE_SIZE];
 
-    #define MAX_LINE 1024
+#define MAX_LINE 1024
 
-    void process_line(char *line, FILE *output) {
-        char *start = strstr(line, "write(");
-        if (!start) {
-            fprintf(output, "%s", line);
-            return;
-        }
-        char before[MAX_LINE];
-        char args[MAX_LINE];
-        char *end = strchr(start, ')');
-        if (!end) {
-            fprintf(output, "%s", line);
-            return;
-        }
-        *end = '\0';
-        strncpy(before, line, start - line);
-        before[start - line] = '\0';
-        strcpy(args, start + 6);
-        char *token = strtok(args, ",");
-        while (token) {
-            fprintf(output, "%swrite(%s);\n", before, token);
-            token = strtok(NULL, ",");
-        }
+void process_line_write(char *line, FILE *output) {
+    char *start = strstr(line, "write(");
+    if (!start) {
+        fprintf(output, "%s", line);
+        return;
     }
+    
+    char before[MAX_LINE];
+    char args[MAX_LINE];
+    char *end = strchr(start, ')');
+    if (!end) {
+        fprintf(output, "%s", line);
+        return;
+    }
+    
+    // Temporarily terminate the argument list
+    char saved_char = *end;
+    *end = '\0';
+    
+    // Copy the portion before write(
+    size_t prefix_len = start - line;
+    strncpy(before, line, prefix_len);
+    before[prefix_len] = '\0';
+    
+    // Extract arguments (after "write(")
+    strcpy(args, start + strlen("write("));
+    
+    // Restore the original line
+    *end = saved_char;
+    
+    // Split arguments by comma
+    char args_copy[MAX_LINE];
+    strcpy(args_copy, args);
+    char *token = strtok(args_copy, ",");
+    while (token) {
+        // Trim leading whitespace
+        while (*token == ' ' || *token == '\t') token++;
+        // Trim trailing whitespace and parentheses
+        char *tend = token + strlen(token) - 1;
+        while (tend > token && (*tend == ' ' || *tend == '\t' || *tend == ')')) {
+            *tend = '\0';
+            tend--;
+        }
+        
+        fprintf(output, "%swrite(%s);\n", before, token);
+        token = strtok(NULL, ",");
+    }
+}
 
-    FILE *process_file_temp(const char *filename) {
-        FILE *input = fopen(filename, "r");
-        if (!input) {
-            perror("Error opening file");
-            exit(EXIT_FAILURE);
+void process_line_read(char *line, FILE *output) {
+    char *start = strstr(line, "read(");
+    if (!start) {
+        fprintf(output, "%s", line);
+        return;
+    }
+    
+    char before[MAX_LINE];
+    char args[MAX_LINE];
+    char *end = strchr(start, ')');
+    if (!end) {
+        fprintf(output, "%s", line);
+        return;
+    }
+    
+    // Temporarily terminate the argument list
+    char saved_char = *end;
+    *end = '\0';
+    
+    // Copy the portion before read(
+    size_t prefix_len = start - line;
+    strncpy(before, line, prefix_len);
+    before[prefix_len] = '\0';
+    
+    // Extract arguments (after "read(")
+    strcpy(args, start + strlen("read("));
+    
+    // Restore the original line
+    *end = saved_char;
+    
+    // Split arguments by comma
+    char args_copy[MAX_LINE];
+    strcpy(args_copy, args);
+    char *token = strtok(args_copy, ",");
+    while (token) {
+        // Trim leading whitespace
+        while (*token == ' ' || *token == '\t') token++;
+        // Trim trailing whitespace and parentheses
+        char *tend = token + strlen(token) - 1;
+        while (tend > token && (*tend == ' ' || *tend == '\t' || *tend == ')')) {
+            *tend = '\0';
+            tend--;
         }
-        FILE *temp = fopen("temp.txt", "w");
-        if (!temp) {
-            perror("Error creating temp file");
-            fclose(input);
-            exit(EXIT_FAILURE);
-        }
-        char line[MAX_LINE];
-        while (fgets(line, MAX_LINE, input)) {
-            process_line(line, temp);
-        }
+        
+        fprintf(output, "%sread(%s);\n", before, token);
+        token = strtok(NULL, ",");
+    }
+}
+
+FILE *process_file_temp(const char *filename) {
+    FILE *input = fopen(filename, "r");
+    if (!input) {
+        perror("Error opening input file");
+        exit(EXIT_FAILURE);
+    }
+    
+    FILE *temp = fopen("temp.txt", "w");
+    if (!temp) {
+        perror("Error creating temp file");
         fclose(input);
-        fclose(temp);
-        temp = fopen("temp.txt", "r");
-        if (!temp) {
-            perror("Error opening temp file for reading");
-            exit(EXIT_FAILURE);
-        }
-        return temp;
+        exit(EXIT_FAILURE);
     }
+    
+    char line[MAX_LINE];
+    while (fgets(line, MAX_LINE, input)) {
+        if (strstr(line, "read(")) {
+            process_line_read(line, temp);
+        } else if (strstr(line, "write(")) {
+            process_line_write(line, temp);
+        } else {
+            fprintf(temp, "%s", line);
+        }
+    }
+    
+    fclose(input);
+    fclose(temp);
+    
+    temp = fopen("temp.txt", "r");
+    if (!temp) {
+        perror("Error reopening temp file");
+        exit(EXIT_FAILURE);
+    }
+    return temp;
+}
+
 %}
 
 %union {
@@ -278,7 +363,7 @@ break_stmt:
 ;
 
 read_stmt:
-      READ '(' var_expr ')' { $$ = NULL; }
+      READ '(' var_expr ')' { $$ = create_read_stmt($3); }
 ;
 
 write_stmt:
@@ -289,6 +374,9 @@ write_stmt:
 assign_stmt:
        var_expr '=' expr {$$ = create_assign_stmt($1, $3);}
       | {$$ = NULL; }
+      | var_expr '+' '+' {
+            $$ = create_assign_stmt($1, create_expr_node(OP_ADD, $1, create_num_node(1)));
+      }
 ;
 
 cond_stmt:
@@ -367,18 +455,23 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
     
-    yyparse();
-
-    eval_stmts(global_stmts);
-
-    print_ast();
-    free_statements();
-
-    print_symbol_table();
-    free_symbol_table();
+    // Initialize symbol table
+    init_symbol_table();
     
+    // Parse the input file
+    yyparse();
+    // Initialize code generation
+    eval_stmts(global_stmts);
+    print_ast();
+    init_code_gen(argv[1]);
+    
+    // Generate code
+    generate_code(global_stmts);
+    
+    // Clean up
     fclose(yyin);
     remove("temp.txt");
+    free_symbol_table();
     
     return 0;
 }

@@ -29,6 +29,10 @@ digit	[0-9]
 letter	[a-zA-Z]
 string  \"[^\"]*\"
 
+/* Define exclusive start conditions for comments */
+%x SINGLE_LINE_COMMENT
+%x MULTI_LINE_COMMENT
+
 %%
 
 main         { return MAIN; }
@@ -70,6 +74,18 @@ false        { return F; }
                 yylval.var[strlen(yylval.var) - 1] = '\0';
                 return STRING; 
              }
+
+"//"         { BEGIN(SINGLE_LINE_COMMENT); }
+<SINGLE_LINE_COMMENT>\n  { 
+                           Lineno++; 
+                           BEGIN(INITIAL); 
+                         }
+<SINGLE_LINE_COMMENT>.   { /* Ignore everything in single-line comment */ }
+
+"/*"         { BEGIN(MULTI_LINE_COMMENT); }
+<MULTI_LINE_COMMENT>"*/" { BEGIN(INITIAL); }
+<MULTI_LINE_COMMENT>\n   { Lineno++; }
+<MULTI_LINE_COMMENT>.    { /* Ignore everything in multi-line comment */ }
 
 [-+*/=()><;,\{\}\[\]\%] { return yytext[0]; }
 
