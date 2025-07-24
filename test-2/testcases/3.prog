@@ -1,9 +1,0 @@
-begindecl
-enddecl
-begin
-if 1 == 2 then
-    write("One and Two are Equal...");
-else
-    write("One and two are not equal...");
-endif
-end
